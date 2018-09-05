@@ -1,9 +1,7 @@
 notify-keyspace-event
 AKE,AK,AE,K$,EL
 
-## redis持久化
-### rdb
-####命令
+# redis
 save:阻塞式
 bgsave:创建子进程
 >rdb是在数据库启动时候载入的
