@@ -1,0 +1,47 @@
+@startuml
+[-> GpsKafkaConsumerListener: Kafka消息
+note left GpsKafkaConsumerListener: 消息消费
+GpsKafkaConsumerListener -> DeviceStream :stream
+DeviceStream->DeviceController :onLoadCtx
+return deviceContext
+DeviceStream->DeviceController:execute
+
+DeviceController -> DeviceController : onEvent
+note right DeviceController
+判断事件处理方式
+    1.开始事件
+    2.GPS事件
+    3.事件
+end note
+
+alt event type start
+
+'开始事件
+DeviceController -> TjTrackFlowLayerImpl: onTrackStart
+activate TjTrackFlowLayerImpl
+TjTrackFlowLayerImpl ->TrackService : normalTrackEnd
+
+
+activate TrackService
+
+deactivate TrackService
+
+
+return boolean
+deactivate TjTrackFlowLayerImpl
+
+else event type gps
+'结束事件
+DeviceController -> TjTrackFlowLayerImpl: onTrackEnd
+return boolean
+
+
+else event type end
+'GPS事件
+DeviceController -> TjTrackFlowLayerImpl: onUpload
+return boolean
+end
+'更新设备信息
+DeviceController -> DeviceController : uploadCtx
+
+@enduml
