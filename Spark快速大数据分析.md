@@ -1,4 +1,4 @@
-### 键值对操作
+# 键值对操作
 
 #### pair rdd
 
@@ -92,7 +92,116 @@ object StorageLevel {
 
 ## 动机
 
-java 可通过InputFormat或者OutputFormat 访问数据
+java 可通过InputFormat或者OutputFormat 访问数据，不同的文件系统会有不同的配置和压缩方式
 
+## 文件格式
 
+| 文件格式        | 结构化   | 备注             |
+| --------------- | -------- | ---------------- |
+| 文本文件        | 否       |                  |
+| json            | 半结构化 |                  |
+| csv             | 结构化   |                  |
+| sequenceFiles   | 结构化   |                  |
+| Protocal buffer | 结构化   |                  |
+| 对象文件        | 结构化   | 依赖于Java序列化 |
+
+### 文本文件
+
+#### 读取
+
+可以一行为一个RDD元素，或者多个文本作为Pair RDD
+
+```scala
+var input = sc.textFile(path)
+```
+
+针对许多数据可以使用wholeTextFile()生成多文件的Pair RDD，文件路径支持模糊匹配的方式。
+
+```scala
+var input = sc.wholeTextFile(path)
+```
+
+#### 保存
+
+如果是PairRDD，会保存多个文本文件。
+
+```scala
+result.saveAsTextFile(path)
+```
+
+### JSON
+
+#### 读取
+
+```scala
+case class Person(name: String, lovesPandas: Boolean)
+val result = input.flatMap(record => {
+try {
+	Some(mapper.readValue(record, classOf[Person]))
+} catch {
+	case e: Exception => None
+}})
+```
+
+#### 保存
+
+```scala
+result.map(mapper.writeValueAsString(_)).saveAsTextFile(path)
+```
+
+### CSV
+
+#### 读取
+
+ `Hadoop InputFormat`不支持包含换行符的记录
+
+```scala
+val input = sc.textFile(inputFile)
+val result = input.map{ line =>
+    val reader = new CSVReader(new StringReader(line));
+    reader.readNext();
+}
+```
+
+*文件解析如果文件过大则会导致解析时候成为性能瓶颈*
+
+#### 保存
+
+```scala
+pandaLovers.map(person => List(person.name, person.idCard).toArray)
+.mapPartitions{
+    people =>
+        val stringWriter = new StringWriter();
+        val csvWriter = new CSVWriter(stringWriter);
+        csvWriter.writeAll(people.toList)
+        Iterator(stringWriter.toString)
+}.saveAsTextFile(outFile)
+```
+
+### SequenceFile
+
+#### 读取
+
+`sequence`文件是通过参数`Writable`确定具体的类型
+
+```scala
+var data = sc.sequenceFile(path,keyClass,valueClass,minPartitions)
+/*val data = sc.sequenceFile(inFile, classOf[Text], classOf[IntWritable]).map{case (x, y) => (x.toString, y.get())}*/
+```
+
+#### 保存
+
+暂无
+
+### 对象文件
+
+对象文件的局限性，是如果对象字段修改需要，保存的对象文件不再可读
+
+#### 读取
+
+```scala
+var data = sc.hadoopFile()
+```
+
+#### 保存
 
