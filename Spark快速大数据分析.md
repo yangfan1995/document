@@ -191,8 +191,6 @@ var data = sc.sequenceFile(path,keyClass,valueClass,minPartitions)
 
 #### 保存
 
-暂无
-
 ### 对象文件
 
 对象文件的局限性，是如果对象字段修改需要，保存的对象文件不再可读
