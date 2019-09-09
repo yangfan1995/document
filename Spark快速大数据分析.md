@@ -201,5 +201,95 @@ var data = sc.sequenceFile(path,keyClass,valueClass,minPartitions)
 var data = sc.hadoopFile()
 ```
 
-#### 保存
+### 文件压缩
+
+| 格式   | 是否可分割 | 平均压缩效率 | 压缩效率(由高到低) |
+| ------ | ---------- | ------------ | ------------------ |
+| gzip   | 否         |              |                    |
+| lzo    | 是         |              |                    |
+| zlib   | 否         |              |                    |
+| Snappy | 否         | 非常快       |                    |
+
+## Spark SQL的机构化数据
+
+### Hive
+
+```scala
+import org.apache.spark.sql.hive.HiveContext
+val hiveCtx = new org.apache.spark.sql.hive.HiveContext(sc)
+val rows = hiveCtx.sql("SELECT name, age FROM users")
+val firstRow = rows.first()
+println(firstRow.getString(0))
+```
+
+### JSON
+
+```scala
+var json = "{\"user\": {\"name\": \"Holden\", \"location\": \"San Francisco\"}, \"text\": \"Nice day out today\"}\n{\"user\": {\"name\": \"Matei\", \"location\": \"Berkeley\"}, \"text\": \"Even nicer here :)\"}"xxxxxxxxxx var var json = "{\"user\": {\"name\": \"Holden\", \"location\": \"San Francisco\"}, \"text\": \"Nice day out today\"}\n{\"user\": {\"name\": \"Matei\", \"location\": \"Berkeley\"}, \"text\": \"Even nicer here :)\"}"
+
+hiveCtx.jsonFile(json)
+```
+
+# Spark 编程进阶
+
+## 简介
+
+*共享变量：累加器和广播变量*
+
+## 累加器
+
+```scala
+var callSigns = sc.longAccumulator
+
+val callSigns = file.flatMap(line => {
+    if (line == "") {
+        blankLines += 1
+    }
+    line.split(" ")
+})
+```
+
+**使用步骤**
+
++ 初始化累加器
++ 闭包中进行add累加器
++ 通过累加器的value属性获取累加器的值
+
+### 累加器与容错性
+
+> 如果想要失败还是重复计算都是可靠的累加器，放在foreach中，防止RDD的抢占或者失败状况
+
+### 自定义累加器
+
+```scala
+var accumulator = AccumulatorParam[Int]
+```
+
+## 广播变量
+
+**实现过程**
+
++ sparkContext.broadCast生成一个对象
++ 通过value访问对象的值
++ 变量只会发送到各个节点一次，作为只读处理
+
+**广播的优化**
+
++ 性能瓶颈：想要广播的数据进行序列化操作，减少网络传输的时间
++ 可以使用spark.serializer指定序列化方式
++ Kryo更加的高效
+
+## 基于分区的操作
+
+| 操作函数               | 描述                           | 返回值     |
+| ---------------------- | ------------------------------ | ---------- |
+| mapPartitions          | 处理该分区数据的迭代器         | 元素迭代器 |
+| mapPartitionsWithIndex | 处理该分区数据的迭代器以及序号 | 元素迭代器 |
+| foreachPartitions      | 元素迭代器                     | 无         |
+
+## 与外部程序间的管道
+
+RDD的pipe()方法可以提供与其他程序语言交互
+
+## 数值RDD 操作
 
