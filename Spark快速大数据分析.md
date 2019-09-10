@@ -1,3 +1,7 @@
+[TOC]
+
+
+
 # 键值对操作
 
 #### pair rdd
@@ -292,4 +296,102 @@ var accumulator = AccumulatorParam[Int]
 RDD的pipe()方法可以提供与其他程序语言交互
 
 ## 数值RDD 操作
+
+1. 常用函数
+
+| 方法           | 含义               |
+| -------------- | ------------------ |
+| count          |                    |
+| mean           | 平均值             |
+| sum            | 总和               |
+| max            | 最大值             |
+| min            | 最小值             |
+| variance       | 元素的方差         |
+| sampleVariance | 采样中计算出的方差 |
+| stdev          | 标准差             |
+| sampleStdev    | 采样中的标准差     |
+
+2. 部分具体函数使用
+
+   1. sample(withReplacement: Boolean, fraction: Double, seed: Int)
+
+      随机挑选产生新的RDD，withReplacement表示是否允许重复挑选，fraction表示挑选比例，seed表示随机初始化种子
+
+   2. sampleByKey(withReplacement: Boolean, fractions: Map[K, Double], seed: Long
+
+      先将每一个key相同的聚合在一起，然后在相同的key之间按照指定的权重筛选，用户需要自定义一个Map来确定每个key筛选的比例
+
+   3. ###### stats()
+
+      产生统计学方法，同时计算RDD中的平均值，方差，标准差，最大值和最小值
+
+# 集群上运行Spark
+
+## Spark运行时的架构
+
+```mermaid
+graph TD
+	Spark驱动程序 --> 集群管理器yarn或者其他管理器
+	集群管理器yarn或者其他管理器 -->  集群工作节点1
+	集群工作节点1 --> 执行器进程1
+	集群管理器yarn或者其他管理器 -->  集群工作节点2
+	集群工作节点2 --> 执行器进程2
+	集群管理器yarn或者其他管理器 -->  集群工作节点3
+	集群工作节点3 --> 执行器进程3
+```
+
+### 驱动器节点
+
+驱动器的职责：
+
+1. 把用户程序转为任务task，形成逻辑上的有向无环图(DAG)，Spark会执行一系列的优化
+   + 连续映射转化为流水线操作
+   + 多个操作合并为一个
+   + 转化为步骤(stage)
+2. 为执行节点调度任务
+   + 会跟踪执行其中的临时数据，为接下来的调度做准备
+
+### 执行器节点
+
+执行器的职责：
+
+1. 进行Spark的业务的运算，并将数据返回驱动器
+2. 通过本身的块管理器，对计算中的RDD进行缓存
+
+### 集群管理器
+
+> 主节点和工作节点是针对去中心化和分布式所强调的方面。
+
+
+
+提交过程
+
+```mermaid
+graph TD
+	用户提交脚本 -->|启动脚本程序|驱动管理器;
+	驱动管理器 -->|通信并调度资源| 集群管理器; 
+	集群管理器 --> |启动| 执行器节点
+	执行器节点--> RDD操作;
+	RDD操作 --> 返回执行结果;
+	返回执行结果 --> main方法退出/SparkContext.stop
+```
+
+## Spark submit
+
+1. master 标记接收值
+
+| 参数     | 描述           |
+| -------- | -------------- |
+| local    | 本地单核       |
+| local[N] | 本地N核        |
+| local[*] | 本地尽可能多核 |
+
+2. Spark 高可用
+
+
+	[官方文档中主从节点的切换][1]
+
+   [1]: https://spark.apache.org/docs/latest/spark-standalone.html#standby-masters-with-zookeeper
+
+   
 
