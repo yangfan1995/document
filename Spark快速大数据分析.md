@@ -391,7 +391,72 @@ graph TD
 
 	[官方文档中主从节点的切换][1]
 
-   [1]: https://spark.apache.org/docs/latest/spark-standalone.html#standby-masters-with-zookeeper
+[1]: https://spark.apache.org/docs/latest/spark-standalone.html#standby-masters-with-zookeeper
 
-   
+  # Spark调优
+
+## SparkConf配置Spark
+
+```scala
+val sparkConf = new SparkConf()
+```
+
+## Spark执行的组成部分:作业、任务和步骤
+
+```scala
+//toDebugString查看RDD的族谱
+val count = input.map(line => line.split(" ")).filter(word => word.length > 0).map(word => (word(0), 1)).reduceByKey({
+    (a, b) => a + b
+})
+println(count.toDebugString)
+/*
+(50) ShuffledRDD[7] at reduceByKey at TestRdd.scala:32 []
+ +-(1) MapPartitionsRDD[6] at map at TestRdd.scala:31 []
+    |  MapPartitionsRDD[5] at filter at TestRdd.scala:31 []
+    |  MapPartitionsRDD[4] at map at TestRdd.scala:31 []
+    |  MapPartitionsRDD[3] at rdd at TestRdd.scala:31 []
+    |  MapPartitionsRDD[2] at rdd at TestRdd.scala:31 []
+    |  MapPartitionsRDD[1] at rdd at TestRdd.scala:31 []
+    |  FileScanRDD[0] at rdd at TestRdd.scala:31 []
+*/
+```
+
+### Spark执行的主要流程
+
+1. 用户代码定义有向无环图
+2. 有向无环图编译为执行计划
+3. 调度执行
+
+ ## 信息过滤
+
+1. 作业页面
+2. 存储页面
+3. 环境页面
+4. 驱动器页面
+
+## 关键性能考量
+
+### 并行度
+
+> 子RDD会继承父RDD的并行度
+
+当并行度过低，资源闲置，当并行度过高，是否超过标准
+
+并行度调优：
+
++ 使用参数进行RDD并行度设置
++ 对RDD进行重新分区
+
+#### 重新分区
+
+##### 宽分区、窄分区
+
+窄分区：一个父RDD对应一个子RDD或多个父RDD对应一个子RDD
+
+宽分区：子RDD依赖于父RDD的多个分区，或者子RDD依赖于父RDD的所有分区
+
+1. coalesce
+2. repartition
+
+
 
