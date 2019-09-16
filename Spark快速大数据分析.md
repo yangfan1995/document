@@ -458,5 +458,11 @@ println(count.toDebugString)
 1. coalesce
 2. repartition
 
+# # Spark SQL
+
+> SchemaRDD存储每个row的数据
+
+## 应用中使用Sparing SQL
+
 
 
