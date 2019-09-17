@@ -63,3 +63,60 @@ persist()或者cache()方法，persist()可以指定存储级别
 2. worker：会将启动器停止
 3. 执行器：定时接收StatusUpdate,没有收到会将执行器移除，worker收到指令后才会重新启动执行器
 
+# Spark内核讲解
+
+## Spark核心数据结构RDD
+
+###RDD:弹性分布式数据集
+
+1. 数据集：数据为平铺，可以遍历
+2. 分布式：分布式存储，数据被分割为多个水平数据块，分布在多个节点上，便于并行计算
+3. 弹性：一些操作可以在数据块上直接计算，比如map()，有些数据是要所有数据块同时操作，比如groupByKey
+
+RDD特点：
+
+1. 可重复计算：容错性，数据缺失后可以重新计算得出结果
+2. 只读性：数据不可更改，为了简化操作，不用考虑数据互斥
+3. 可缓存：RDD生成一次后会被jvm回收，多次使用多次计算，如果为了计算更快，可进行缓存
+
+### RDD定义
+
+#### 分区和依赖
+
+```scala
+  // Our dependencies and partitions will be gotten by calling subclass's methods below, and will
+  // be overwritten when we're checkpointed
+  private var dependencies_ : Seq[Dependency[_]] = _
+  @transient private var partitions_ : Array[Partition] = _
+```
+
+#### 计算函数
+
+```scala
+/** * :: DeveloperApi :: * Implemented by subclasses to compute a given partition. */
+@DeveloperApidef compute(split: Partition, context: TaskContext): Iterator[T]
+```
+
+#### 分区
+
+```scala
+/** Optionally overridden by subclasses to specify how they are partitioned. */
+@transient val partitioner: Option[Partitioner] = None
+```
+
+### RDD的Transformation
+
+RDD通过构造有向无环图完成容错的机制，计算更加便捷，比如map，filter，如果链条过长，需要通过检查点checkPoint机制，保存快照进行容错。
+
+### RDD的Action
+
+RDD的action调用后不再生成新的RDD，返回Driver
+
+### Shuffle
+
+数据混洗：成本很高，主要是网络传输的开销
+
+![reduceByKey](E:\document\img\reduceByKey.png)
+
+## SparkContext
+
