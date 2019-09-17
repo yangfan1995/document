@@ -116,7 +116,23 @@ RDD的action调用后不再生成新的RDD，返回Driver
 
 数据混洗：成本很高，主要是网络传输的开销
 
-![reduceByKey](E:\document\img\reduceByKey.png)
+<img src="E:\image\img\reduceByKey.png" alt="reduceByKey" style="zoom:50%;" />
 
 ## SparkContext
+
+SparkContext.createTaskScheduler分别针对不同调度方式区分主调度器和备调度器
+
+```scala
+master match {
+        //主调度器
+    case "local" =>
+    val scheduler = new TaskSchedulerImpl(sc, MAX_LOCAL_TASK_FAILURES, isLocal = true)
+        //备用调度器
+    val backend = new LocalSchedulerBackend(sc.getConf, scheduler, 1)
+    scheduler.initialize(backend)
+    (backend, scheduler)
+}
+```
+
+## DAG调度
 
