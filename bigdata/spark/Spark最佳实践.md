@@ -134,5 +134,49 @@ master match {
 }
 ```
 
-## DAG调度
+# SparkSQL和数据仓库
+
+> SparkSQL是Spark的一个模块，支持很多数据源方式容错。
+
+SparkSQL分为两种方式，一种是直接写SQL方式一种是通过API实现DataFrame的操作
+
+## SparkSQL
+
+### 支持的语法
+
+普通的SQL语法，1.4开始后支持窗口函数
+
+### 支持的数据类型
+
+1. 数字类型：ByteType,ShortType,IntegerType,LongType,FloatType,DoubleType,DecimalType
+2. 字符串类型：StringType
+3. 二进制：BinaryType
+4. 布尔类型：BooleanType
+5. 日期类型：TimeStampType,DateType
+6. 复杂类型：StructType,ArrayType,MapType
+
+### DataFrame 数据源
+
+写入模式：
+
+1. SaveMode.ErrorIfExists
+2. SaveMode.Append
+3. SaveMode.Overwrite
+4. SaveMode.Ignore
+
+### SparkSQL架构
+
+![1568810830702](E:\image\img\SparkSQL架构.png)
+
+### Catalyst 
+
+#### 执行步骤：
+
+##### 分析
+
+1. 逻辑优化
+2. 物理优化
+3. 代码生成
+
+
 
