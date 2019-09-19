@@ -170,13 +170,83 @@ SparkSQL分为两种方式，一种是直接写SQL方式一种是通过API实现
 
 ### Catalyst 
 
-#### 执行步骤：
+#### 执行步骤
 
 ##### 分析
 
-1. 逻辑优化
-2. 物理优化
-3. 代码生成
+通过语法树或者数据的DataFrame对象，查找关系表，匹配属性名，指向相同属性的赋予相同ID，扩散定义类型。
 
+##### 逻辑优化
 
+针对基于规则的优化方式
+
+##### 物理优化
+
+对于已知的小表使用广播连接，递归整个树来计算成本
+
+##### 代码生成
+
+# SparkStreaming
+
+## SparkStreaming基础知识
+
+### 基本概念
+
+#### StreamingContext
+
+基本环境对象，提供基本的功能入口，构建DStream
+
+### DStream
+
+Streaming的核心抽象，是一系列的RDD序列，每一个RDD是一个时间片周期的数据
+
+```mermaid
+graph LR
+    时间0-1数据 --> 时间1-2数据
+    时间1-2数据 --> 时间12-3数据
+```
+
+### DStream的输入
+
+#### 输入类型
+
+##### 基本类型
+
+ >Api提供方式，文件、socket
+
+##### 高级类型
+
+ >Kafka、Flume
+
+### DStream的操作
+
+1. Transformation:类似RDD的transformation
+2. output:类似RDD的action
+
+窗口操作
+> 主要是窗口长度和滑动区间确定，窗口长度代表处理长度，滑动区间代表处理间隔
+
+Output操作
++ `print()`,测试调试使用
++ `saveAsTextFile(prefix,[suffix])`,保存为文件文本
++ `saveAsObjectFile(prefix,[suffix])`,保存为SequenceFile
++ `foreachRDD(func)`,根据传入函数作用于RDD
+
+### 容错处理
+
+1. 数据源容错
+2. 检查点数据处理容错
+3. 写出覆盖容错
+
+### 性能处理
+
+> 主要两个方向，批次处理事件尽量短和数据尽快处理
+
+1. 减少批处理事件
+
+   增加数量处理并发量，如果数据处理的并发量不是平衡需要调整，尽量使用Kyro方式来处理数据减小CPU和内存占用，task是否频繁启动
+
+2. 合理的处理间隔
+
+[^图，机器学习]: 暂时不去了解
 
