@@ -1,18 +1,20 @@
-# DataX  HBase拓展插件开发
+# datax_expansion_tool
+
+> DataX插件拓展和开发项目
 
 ## 开发背景
 
-业务需要通过DataX进行数据的拉取操作，现阶段DataX仅支持range中的startKey和endKey方式进行范围过滤操作，业务需要通过`minTimestamp`和`maxTimestamp`方式进行范围查询，这篇文章也可以作为针对的DataX插件开发的参考文档。
+业务需要通过DataX进行小批量数据的拉取操作，现阶段DataX仅支持range中的startRowkey和endRowkey方式进行范围过滤操作，处理上和网络传输开销比较大，业务通过`minTimestamp`和`maxTimestamp`方式进行范围查询，缩小查询范围，减少网络和处理上的开销，这篇文章也可以作为针对的DataX插件开发的参考文档。
 
 ## 开发过程
 
 ### 源码下载
-
-通过Idea使用`VCS->Checkout from Version Control->Git`方式从DataX官网https://github.com/alibaba/DataX.git上clone下代码。
+1. [当前项目源码](http://gitlab.icongtai.com/zebra-bigdata/repo-tools/datax_expansion_tool)
+2. 通过Idea使用`VCS->Checkout from Version Control->Git`方式从[DataX官网](https://github.com/alibaba/DataX.git上clone)下代码。
 
 ### 源码处理
 
-DataX的因为已经没有人员维护，所有有个别插件的包需要处理一下，否则在最后所有插件打包时会报错。
+DataX有个别插件的包如果需要用到的话，需要处理一下，否则在最后所有插件打包时会报错。
 
 1. `odpsreader`和`odpswriter`的pom文件中，`odps-sdk-core`版本修改为`0.20.7-public`
 
@@ -105,8 +107,8 @@ DataX的因为已经没有人员维护，所有有个别插件的包需要处理
 4. DataX读取json文件的工具类为传入path，例如获取startRowkey，要传入路径为`range.startRowkey`，程序中为了简化多次获取操作和常量的使用，在`com.alibaba.datax.plugin.reader.hbase11sreader.Hbase11sHelper#validateParameter`里进行读取的处理
 
    ```java
-   String minTimestamp = originalConfig.getString(Constant.RANGE + "." + Key.MIN_TIMESTAMP);
-   String maxTimestamp = originalConfig.getString(Constant.RANGE + "." + Key.MAX_TIMESTAMP);
+       String minTimestamp = originalConfig.getString(Constant.RANGE + "." + Key.MIN_TIMESTAMP);
+       String maxTimestamp = originalConfig.getString(Constant.RANGE + "." + Key.MAX_TIMESTAMP);
    ```
 
 5. `com.alibaba.datax.plugin.reader.hbase11sreader.Hbase11sHelper#convertInnerMaxTimestamp`和`com.alibaba.datax.plugin.reader.hbase11sreader.Hbase11sHelper#convertInnerMinTimestamp`获取配置的最大最小时间
@@ -117,13 +119,87 @@ DataX的因为已经没有人员维护，所有有个别插件的包需要处理
 
 基于该项目，测试代码中需要获取到`datax.home`环境变量作为编译打包后的主要目录，本例中都是使用的是编译后解压后的datax文件夹作为`datax.home`，在idea中通过`Edit Configrations`配置`VM Options`运行参数`-Ddatax.home="F:\datax-all\target\datax\datax"`，将`core`模块中，默认配置文件添加到`datax.home`中。通过`Edit Configrations`配置`Program arguments`项目参数指定DataX json文件和jobid，`-job F:\datax-all\core\src\main\hbase_weizhi_user_to_ods_weizhi_user.json -jobid 123456`，运行`com.alibaba.datax.core.Engine#main`进行文件读取和测试。
 
-#### 测试用例
+#### 测试
 
-对测试数据进行测试，对HBase数据进行读取，写入到txt文件中。
+对测试数据进行测试，对HBase数据进行读取，写入到文本文件中。
 
-| 测试用例                                                    | 预期结果               | 实际结果 |
-| ----------------------------------------------------------- | ---------------------- | -------- |
-| 不传入startRowkey,endRowkey,startTimestamp,endTimestamp     | 所有数据               |          |
-| 传入startRowkey,endRowkey,不传入startTimestamp,endTimestamp | 按照rowkey进行范围查询 |          |
-|                                                             |                        |          |
+| 测试用例                                                     | 预期结果                  |
+| ------------------------------------------------------------ | ------------------------- |
+| 不传入startRowkey,endRowkey,startTimestamp,endTimestamp      | 所有数据                  |
+| 传入startRowkey,endRowkey,不传入startTimestamp,endTimestamp  | 按照rowkey进行范围查询    |
+| 传入startRowkey，endRowkey，startTimestamp，不传入endTimestamp | 抛出参数异常错误          |
+| 传入startRowkey，endRowkey，endTimestamp，不传入startTimestamp | 抛出参数异常错误          |
+| 传入startTimestamp,endTimestamp，不传入startRowkey,endRowkey | 按照timestamp筛选数据     |
+| 传入startRowkey,endRowkey,startTimestamp,endTimestamp        | 按照rowkey和timestamp过滤 |
 
+测试json文件
+
+```json
+{
+  "job": {
+    "setting": {
+      "speed": {
+        "channel": 1
+      },
+      "errorLimit": {
+        "record": 0,
+        "percentage": 0.002
+      }
+    },
+    "content": [
+      {
+        "reader": {
+          "name": "hbase11sreader",
+          "parameter": {
+            "hbaseConfig": { "hbase.zookeeper.quorum":"47.97.74.164:2181"},
+            "table":"WEIZHI_USER",
+            "encoding": "utf-8",
+            "mode": "normal",
+            "column": [
+              {
+                "name": "rowkey",
+                "type": "string"
+              },
+              {
+                "name": "cf:workPlace",
+                "type": "string"
+              }
+            ],
+            "range": {
+              "startRowkey": "",
+              "endRowkey": "",
+              "minTimestamp":"1506691226669",
+              "maxTimestamp":"1506691230789"
+            }
+          }
+        },
+        "writer": {
+          "name": "txtfilewriter",
+          "parameter": {
+            "path": "/data/",
+            "fileName": "qiran",
+            "writeMode": "truncate"
+          }
+        }
+      }
+    ]
+  }
+}
+
+```
+
+运行类主要配置
+
+![运行类配置](./img/运行类配置.png)
+
+运行结果会在json中配置好的路径中生成txt文件，本例中是当前盘符根路径/data文件夹下，生成配置文件名+随机数字的文本。
+
+### 代码打包
+
+在项目主目录使用`mvn -U clean package assembly:assembly -Dmaven.test.skip=true`进行打包，打包结果在target目录下datax.tar.gz，只包含了编写的插件部分，目录结构如下
+
+![DataX打包后结构](./img/datax打包后结构.png)
+
+### 代码发布
+
+为了和使用中的DataX进行整合，将编写好的插件，复制到环境中DataX的目录下，当前是新增的reader插件，对应放在plugin->reader目录下。如果是修改，可以直接替换掉。以下是该项目打包好的插件压缩文件，[插件文件](http://gitlab.icongtai.com/zebra-bigdata/repo-tools/datax_expansion_tool/blob/master/hbase11sreader.zip.gz)
