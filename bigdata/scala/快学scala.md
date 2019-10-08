@@ -228,8 +228,6 @@ val triple = (x : Double) => 3 * x
 
 > 不要将next属性设置为null或者Nil
 
-## 拉链操作
-
 
 
 
