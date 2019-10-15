@@ -131,10 +131,88 @@ Hadoop压缩考量
 
 ![hadoop压缩流程](E:\document\img\hadoop压缩流程.png)
 
-##
+## Snappy压缩
+
+代码分析：主要通过`uncompressedDirectBuf`和`compressedDirectBuf`进行压缩数据的信息缓存处理，按照压缩流程进行判断。
+
+```java
+  private int directBufferSize;
+  private Buffer compressedDirectBuf = null; //已经压缩过的缓冲区
+  private int uncompressedDirectBufLen;
+  private Buffer uncompressedDirectBuf = null; //待压缩的缓冲区
+```
+
+# Hadoop远程调用
+
+## 远程调用基础
+
+### RPC原理
+
+> 远程过程调用是指，允许调用跨机器调用进程或者同一机器的不同进程，调用过程中保证执行流是停止的。
+
+### RPC实现
+
+![RPC调用流程](E:\document\img\RPC调用流程图.png)
+
+> IDL文件(接口定义语言)：描述结构的调用相关信息
+
+## Hadoop中的远程调用
+
+### Hadoop IPC
+
+1. Connection
+   1. ConnectionId
+   2. ConnectionHeader
+2. Call
+3. Server
+   1. 监听
+   2. 处理
+   3. 应答
+
+## Hadoop IPC连接过程
+
+> IPC连接过程、IPC处理过程
+
+### IPC连接成员变量
+
+1. Client.Connection
+2. Server.Connection
+
+### 建立IPC连接
+
+### 数据分帧和读写
+
+常用确定结束方法
+
+1. 定长消息
+2. 基于定界符
+3. 显式长度
+
+## Hadoop IPC方法调用过程
+
+# Hadoop文件系统
+
+## 文件系统
+
+1. 能够存储大量数据
+2. 应用停止时能够保存信息
+3. 多应用并发写入操作
+
+### 文件系统的实现
+
+1. 块管理
+2. 
 
 
 
 
+
+
+
+
+
+[RPC是什么]( https://segmentfault.com/a/1190000018932798?utm_source=tag-newest )
+
+[Java NIO]( http://ifeve.com/java-nio-all/ )
 
 [计算密集，数据密集，IO密集]( https://blog.csdn.net/scrat_kong/article/details/84947414 )
