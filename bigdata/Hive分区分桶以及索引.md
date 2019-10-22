@@ -1,14 +1,17 @@
 # Hive 分区分桶以及索引
 
 ## HDFS 文件系统
+
 HDFS中文件被拆成多个块，并且集中存储在DataNode多个节点上，Hadoop2.X默认文件分块大小为128M，`NameNode`上通常存储集群中文件块的存储位置。Hadoop提供了一个抽象的文件系统，大体可以分为两类一部分文件的读写操作，一部分进行文件目录的事务，在`org.apache.hadoop.fs.FileSystem`中定义,所有的文件状态都保存在`FileStatue`类中，副本个数和块个数等HDFS等特殊参数。
+
 ### 分块大小确定
-+ 减少硬盘寻址时间
-+ 减少Namenode内存消耗
-+ map崩溃问题
-+ 监管时间问题
-+ 问题分解问题
-+ 约束map输出
+
+- 减少硬盘寻址时间
+- 减少Namenode内存消耗
+- map崩溃问题
+- 监管时间问题
+- 问题分解问题
+- 约束map输出
 
 ## Hive分区和分桶
 
@@ -18,41 +21,30 @@ HDFS中文件被拆成多个块，并且集中存储在DataNode多个节点上�
 
 #### 场景
 
-Hive中每个分区对应着表很多的子目录，将所有的数据按照分区列放入到不同的子目录中去。对不同列的划分应该让数据尽可能均匀分布。最好的情况下，分区的划分条件总是能够对应where语句的部分查询条件。当where条件给出列值，只需要扫描目录下的数据，不扫描其他不关心的分区，快速定位文件夹，主要分为动态分区和静态分区。静态分区指在创建表时，进行分区规划；动态分区则是具体的处理数据进行分区目录的创建。
+Hive中每个分区对应着表很多的子目录，将所有的数据按照分区列放入到不同的子目录中去。对不同列的划分应该让数据尽可能均匀分布。
 
-#### 原理
+最好的情况下，分区的划分条件总是能够对应where语句的部分查询条件。当where条件给出列值，只需要扫描目录下的数据，不扫描其他不关心的分区，快速定位文件夹，主要分为动态分区和静态分区。
 
-
+静态分区指在创建表时，进行分区规划；动态分区则是具体的处理数据进行分区目录的创建。
 
 #### 优化方式
-
-##### 静态分区方式
-
-+ 建表时指定分区字段和字段类型
-
-   ```sql
-   create table tmp_table (name string,address string) partitioned by (sex string) row format delimited fields terminated by ',';
-   ```
-
-+ 修改表结构添加分区字段和字段类型
-
-   ```sql
-   alter table tmp_table add if not exists partition(sex='male') 
-   ```
 
 ##### 动态分区方式
 
 1. 开启动态分区`set hive.exec.dynamic.partition=true`
-2. 如果是有静态分区存在，也就是静态和动态分区都存在，需要指定`set hive.exec.dynamic.partition.mode=nonstrict`
-3. 如果分区个数过多可以通过` set hive.exec.max.dynamic.partitions=1000 `指定在所有节点上一共可以创建多少个分区；` set hive.exec.max.dynamic.partitions.pernode=100 `,每个节点最大的分区个数
-4. `set hive.exec.max.created.files=100000`指定每个job可以创建多少个HDFS文件
+2. `set hive.exec.dynamic.partition.mode=nonstrict`*动态分区的模式，默认strict，表示必须指定至少一个分区为静态分区，`nonstrict`模式表示允许所有的分区字段都可以使用动态分区。*
+3. ` set hive.exec.max.dynamic.partitions=1000 `*分区个数过多指定在所有节点上一共可以创建多少个分区*
+4. ` set hive.exec.max.dynamic.partitions.pernode=100 `*每个节点最大的分区个数*
+5. `set hive.exec.max.created.files=100000`*指定每个job可以创建多少个HDFS文件*
+
+> 分区提供了一个隔离数据和优化查询的可行方案，但是并非所有的数据集都可以形成合理的分区，分区的数量也不是越多越好，过多的分区条件可能会导致很多分区上没有数据。同时Hive会限制动态分区可以创建的最大分区数，用来避免过多分区文件对文件系统产生负担。 
 
 ### Hive分桶
 
 #### 场景
 
 1. 桶是相对分区更为细粒度的数据划分，使得效率查询效率更高；
-2. 加快表连接map-join的速度；
+2. 加快表连接（大表join大表）的速度；
 3. 数据抽样
 
 > 其他情况不建议分桶，分桶表是一经决定，就不能更改，所以如果要改变桶数，要重新插入分桶数据。
@@ -64,8 +56,9 @@ Hive中每个分区对应着表很多的子目录，将所有的数据按照分�
 
 #### 优化方法
 
-+ 开启分桶` set hive.enforce.bucketing=true; `
-+ 
++ 开启分桶` set hive.enforce.bucketing=true; `*Hive2.0不需要设置*
+
+> load加载数据不会进行分桶操作，使用CTAS方式才会进行分桶操作
 
 ## Hive索引机制
 
@@ -73,9 +66,34 @@ Hive中每个分区对应着表很多的子目录，将所有的数据按照分�
 
 #### 场景
 
+索引的设计目标是提高表某些列的查询速度。如果没有索引，带有谓词的查询会加载整个表或分区并处理所有行。但是如果 column 存在索引，则只需要加载和处理文件的一部分。
+
 #### 原理
+
+##### 压缩索引
+
+针对建立索引的列会创建如下索引表，
+
+| col_name    | data_type     | comment       |
+| ----------- | ------------- | ------------- |
+| col_name    | col_type      | 列名          |
+| _bucketname | string        | HDFS 文件路径 |
+| _offset     | array<bigint> | 偏移量        |
 
 #### 优化方式
 
++ 默认情况下hive查询是不会通过索引的，可以通过以下配置方式进行开启
 
+    1. `hive.optimize.index.filter;`*是否开启索引查询*
+    2. `hive.optimize.index.filter.compact.minsize;`*输入大于最小的阀值会自动应用索引*
+    3. `hive.optimize.index.filter.compact.maxsize;`*使用压缩索引查询时能读到的最大索引项数 ，负值表示无穷*
+    4. `hive.exec.concatenate.check.index`*删除表或者分区时是否检查索引，如果有索引会报错提醒*
+    5. `hive.index.compact.binary.search`*是否启用二分查找*
++ 适用于不更新的静态字段
++ 不要建立过多的索引
 
+#### 缺陷
+
+1. 不够智能化，每次建立更新数据都要重新构建索引
+2. hive索引表是物理表，需要单独的job进行索引表的查询
+3. Hive3.0删除适用物化视图和Parquet文件或ORC文件代替，两种文件方式都会实现轻量的索引
