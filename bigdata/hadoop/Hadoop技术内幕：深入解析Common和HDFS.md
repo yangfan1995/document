@@ -215,9 +215,18 @@ VFS类似一个文件系统的接口，底层对接真正的文件系统。
 
 ### Hadoop文件系统中的协议处理器
 
+![hadoop文件系统处理流程](https://s2.ax1x.com/2019/10/23/KtC1oT.png)
+
 #### 协议处理
 
-#### 内容处理
+直接对URL模式进行判断，判断是否支持，如果是返回handler对象，用handler对象进行openConnection，返回Connection对象。
+
+### Hadoop具体文件系统
+
+Hadoop文件系统主要是过滤流中添加了新功能，主要是分为ChecksumFileSystem和HarFileSystem.
+
+1. ChecksumFileSystem：对网络传输中的数据进行校验，防止数据的损坏。
+2. HarFileSystem：主要是针对小文件，防止小文件过多占用namenode的大量内存，对HDFS性能造成影响。
 
 
 
